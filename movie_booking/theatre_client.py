@@ -17,14 +17,17 @@ class TheatreClient:
     def get_seats(self, show_id):
         response = self.client.get(f'/shows/{show_id}/seats')
         response.raise_for_status()
-        return response.json()['seats']
+        return response.json()['availability']['seats']
 
     def hold_seats(self, show_id, seat_ids, idempotency_key):
         response = self.client.post('/holds', json={'show_id': show_id, 'seat_ids': seat_ids, 'idempotency_key': idempotency_key})
         response.raise_for_status()
-        return response.json()
+        data = response.json()
+        hold = data['hold']
+        return {**data, 'hold_id': hold['id'], 'amount_paise': hold['total']['value'],
+                'expires_at': hold['expires_at']}
 
     def confirm_booking(self, hold_id, payment_id):
-        response = self.client.post('/bookings', json={'hold_id': hold_id, 'payment_id': payment_id})
+        response = self.client.post('/bookings', json={'confirmation': {'hold_id': hold_id, 'payment_id': payment_id}})
         response.raise_for_status()
         return response.json()
